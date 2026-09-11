@@ -546,20 +546,10 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   }
 });
 
-// ---------- toolbar icon click ----------
-// No default_popup is set in the manifest, so this fires on every click:
-// open the suspended-tabs dashboard as a real tab, or just focus it if one
-// is already open, rather than showing a dropdown popup.
-chrome.action.onClicked.addListener(async () => {
-  const manageUrl = chrome.runtime.getURL("manage.html");
-  const existing = await chrome.tabs.query({ url: manageUrl });
-  if (existing.length > 0 && existing[0].id !== undefined) {
-    await chrome.tabs.update(existing[0].id, { active: true }).catch(() => {});
-    await chrome.windows.update(existing[0].windowId, { focused: true }).catch(() => {});
-  } else {
-    await chrome.tabs.create({ url: manageUrl }).catch(() => {});
-  }
-});
+// Note: no chrome.action.onClicked listener here — the toolbar icon has a
+// default_popup (popup.html) again, and Chrome never dispatches onClicked
+// when a popup is set. The popup's own "View suspended tabs" button opens
+// manage.html instead (see popup.js).
 
 // ---------- context menu actions ----------
 

@@ -25,6 +25,7 @@
     padding: 14px 16px;
     border-bottom: 1px solid var(--border);
   }
+  .section:last-child { border-bottom: none; }
   .row {
     display: flex;
     align-items: center;
@@ -33,9 +34,8 @@
     margin-bottom: 10px;
   }
   .row:last-child { margin-bottom: 0; }
-  .title { font-weight: 600; font-size: 14px; }
-  .muted { color: var(--muted); font-size: 12px; }
-  select, button {
+  .field-label { font-size: 13px; }
+  select, input[type=number], button {
     font: inherit;
     background: var(--card);
     color: var(--text);
@@ -43,6 +43,7 @@
     border-radius: 6px;
     padding: 6px 8px;
   }
+  input[type=number] { width: 70px; }
   button { cursor: pointer; }
   button:hover { background: #35363a; }
   button.primary {
@@ -69,13 +70,6 @@
   }
   input:checked + .slider { background: var(--accent); }
   input:checked + .slider::before { transform: translateX(16px); }
-  .domain-name {
-    font-weight: 600;
-    max-width: 170px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
   .footer-link {
     text-align: center;
     padding: 10px;
@@ -88,38 +82,28 @@
 </head>
 <body>
   <div class="section">
+    <button class="primary" id="viewSuspendedBtn">View suspended tabs</button>
+  </div>
+
+  <div class="section">
     <div class="row">
-      <span class="title">Auto-suspend</span>
+      <label class="field-label" for="defaultTimeout">Default timeout (minutes)</label>
+      <input type="number" id="defaultTimeout" min="1" max="1440" />
+    </div>
+    <div class="row">
+      <label class="field-label" for="suspendAudible">Suspend tabs playing audio or video</label>
       <label class="switch">
-        <input type="checkbox" id="autoSuspendToggle" />
+        <input type="checkbox" id="suspendAudible" />
         <span class="slider"></span>
       </label>
     </div>
     <div class="row">
-      <span class="muted" id="suspendedCount" style="cursor:pointer; text-decoration:underline; text-decoration-style:dotted;">0 tabs suspended</span>
+      <label class="field-label" for="suspendPinned">Suspend pinned tabs</label>
+      <label class="switch">
+        <input type="checkbox" id="suspendPinned" />
+        <span class="slider"></span>
+      </label>
     </div>
-  </div>
-
-  <div class="section">
-    <div class="row">
-      <span class="domain-name" id="currentDomain">this site</span>
-    </div>
-    <div class="row">
-      <span class="muted">Suspend after</span>
-      <select id="domainTimeoutSelect">
-        <option value="0">Never</option>
-        <option value="5">5 min</option>
-        <option value="15">15 min</option>
-        <option value="30">30 min</option>
-        <option value="60">1 hour</option>
-        <option value="180">3 hours</option>
-        <option value="default">Default</option>
-      </select>
-    </div>
-  </div>
-
-  <div class="section">
-    <button class="primary" id="suspendAllBtn">Suspend all other tabs</button>
   </div>
 
   <div class="footer-link" id="openOptions">More settings & whitelist →</div>

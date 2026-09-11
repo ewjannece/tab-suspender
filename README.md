@@ -17,11 +17,12 @@ whitelist, and a snapshot of the page so you remember what was there.
   closed — click it to instantly restore the original page.
 - Right before a tab loses focus, a compressed screenshot of it is captured
   and cached, so the suspended placeholder shows what the page looked like.
-- Clicking the toolbar icon opens (or focuses, if already open) the
+- Clicking the toolbar icon opens a small popup with the default timeout,
+  the "suspend audio/video tabs" and "suspend pinned tabs" toggles, and a
+  "View suspended tabs" button that opens (or focuses, if already open) the
   **Suspended Tabs** dashboard as a regular tab — every currently-suspended
   tab with its screenshot, a restore/close per tab, "Restore all", "Suspend
-  all other tabs", and the global auto-suspend toggle. It's not a dropdown
-  popup; it's the same page you'd get from the Options page link.
+  all other tabs", and the global auto-suspend toggle.
 - Each domain can have its own timeout (Options → "Per-domain timers", or
   right-click a page → "Never suspend this site"). Domains not explicitly
   configured fall back to the global default timeout.
@@ -49,18 +50,18 @@ whitelist, and a snapshot of the page so you remember what was there.
   timeout lookup) used by the background worker, popup, and options page
 - `suspended.html` / `suspended.js` — the placeholder page shown for
   suspended tabs, including the cached screenshot and restore button
-- `manage.html` / `manage.js` — the "Suspended Tabs" dashboard tab. Opened by
-  the toolbar icon click handler in `background.js`
-  (`chrome.action.onClicked` — no `default_popup` is set, so this always
-  fires) and also linked from the Options page. Lists every suspended tab
-  (screenshot, restore/close, "restore all") plus the global auto-suspend
-  toggle and a "suspend all other tabs" button.
+- `popup.html` / `popup.js` — the toolbar's dropdown popup
+  (`action.default_popup` in the manifest): default timeout, "suspend
+  audio/video" and "suspend pinned tabs" toggles, and a button that opens
+  the suspended-tabs dashboard
+- `manage.html` / `manage.js` — the "Suspended Tabs" dashboard tab, opened
+  from the popup's button (or focused if already open) and also linked from
+  the Options page. Lists every suspended tab (screenshot, restore/close,
+  "restore all") plus the global auto-suspend toggle and a "suspend all
+  other tabs" button.
 - `options.html` / `options.js` — full settings page: general options,
   per-domain timer table, whitelist editor (with bulk import)
 - `icons/` — toolbar/extension icons
-- `popup.html` / `popup.js` — **unused**, kept for reference. This was the
-  toolbar's dropdown popup at one point; the toolbar icon now opens
-  `manage.html` as a tab instead (see above). Safe to remove.
 
 ## Notes & limitations
 
