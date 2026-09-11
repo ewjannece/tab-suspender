@@ -9,6 +9,7 @@ const DEFAULT_SETTINGS = {
   suspendPinned: false,
   suspendAudible: false,
   suspendUnsavedForms: false, // false = skip auto-suspending tabs with unsaved (in-progress) form input
+  restoreOnActivate: false, // true = clicking a suspended tab restores it immediately, no need to click "reload"
   domainRules: {
     // hostname (or "*.example.com") -> minutes. 0 = never suspend (whitelisted).
     "meet.google.com": 0,

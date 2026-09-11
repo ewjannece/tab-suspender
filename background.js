@@ -191,7 +191,24 @@ chrome.tabs.onActivated.addListener(async ({ tabId }) => {
   // cached for every tab while it's in view, ready for whenever it's later
   // suspended in the background.
   await captureTab(tabId).catch(() => {});
+
+  await maybeRestoreOnActivate(tabId);
 });
+
+// If "restoreOnActivate" is on, clicking a suspended tab restores it right
+// away instead of waiting for a click on its "reload" button. Cheap early
+// exit for the common case (activating a normal tab) before touching
+// storage: only tabs currently showing suspended.html are ever candidates.
+async function maybeRestoreOnActivate(tabId) {
+  const tab = await chrome.tabs.get(tabId).catch(() => null);
+  const info = tab ? parseSuspendedTab(tab) : null;
+  if (!info || !info.url) return;
+
+  const settings = await getSettings();
+  if (!settings.restoreOnActivate) return;
+
+  await chrome.tabs.update(tabId, { url: info.url }).catch(() => {});
+}
 
 chrome.windows.onFocusChanged.addListener(async (windowId) => {
   if (windowId === chrome.windows.WINDOW_ID_NONE) return;

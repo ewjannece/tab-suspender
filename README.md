@@ -14,7 +14,14 @@ whitelist, and a snapshot of the page so you remember what was there.
 
 - Tabs are tracked by "last active" time. When a tab goes idle past its
   timeout, it's navigated to a local `suspended.html` page instead of being
-  closed — click it to instantly restore the original page.
+  closed — click "Click to reload tab" (or the screenshot) to instantly
+  restore the original page. Options → "Restore suspended tabs when clicked"
+  (off by default) skips that click: switching to a suspended tab restores
+  it immediately.
+- Suspended tabs show a "zzz" icon (`icons/zzz.svg`) in the tab strip instead
+  of the original site's favicon, so they're recognizable at a glance. The
+  original favicon still appears inside the placeholder page itself, over
+  the screenshot.
 - Right before a tab loses focus, a compressed screenshot of it is captured
   and cached, so the suspended placeholder shows what the page looked like.
 - Clicking the toolbar icon opens a small popup with the default timeout,

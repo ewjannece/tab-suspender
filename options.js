@@ -6,6 +6,7 @@ const DEFAULTS = {
   suspendPinned: false,
   suspendAudible: false,
   suspendUnsavedForms: false,
+  restoreOnActivate: false,
   domainRules: {},
   whitelist: []
 };
@@ -28,6 +29,7 @@ async function load() {
   document.getElementById("suspendPinned").checked = state.suspendPinned;
   document.getElementById("suspendAudible").checked = state.suspendAudible;
   document.getElementById("suspendUnsavedForms").checked = state.suspendUnsavedForms;
+  document.getElementById("restoreOnActivate").checked = state.restoreOnActivate;
 
   renderDomainTable();
   renderWhitelistTable();
@@ -135,6 +137,10 @@ document.getElementById("suspendAudible").addEventListener("change", (e) => {
 });
 document.getElementById("suspendUnsavedForms").addEventListener("change", (e) => {
   state.suspendUnsavedForms = e.target.checked;
+  persist();
+});
+document.getElementById("restoreOnActivate").addEventListener("change", (e) => {
+  state.restoreOnActivate = e.target.checked;
   persist();
 });
 

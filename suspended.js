@@ -8,9 +8,12 @@ const favicon = params.get("favicon") || "";
 document.title = title ? `${title} (suspended)` : "Tab suspended";
 document.getElementById("pageTitle").textContent = title;
 
+// This only sets the favicon shown in the overlay on the screenshot preview,
+// not the browser tab's own icon — that stays the "zzz" icon set in
+// suspended.html's <link rel="icon">, so suspended tabs are recognizable at
+// a glance in the tab strip instead of looking identical to the live page.
 if (favicon) {
   document.getElementById("favicon-img").src = favicon;
-  document.getElementById("favicon").href = favicon;
 } else {
   document.getElementById("favicon-img").style.visibility = "hidden";
 }
