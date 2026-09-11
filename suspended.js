@@ -25,6 +25,26 @@ function restore() {
 document.getElementById("restoreBtn").addEventListener("click", restore);
 document.getElementById("shotFrame").addEventListener("click", restore);
 
+// "Never suspend this site" — whitelist the domain this tab was suspended
+// from, then restore it, same as the identically-named right-click context
+// menu action but reachable right from the placeholder that's annoying you.
+let originalHost = null;
+try {
+  originalHost = originalUrl ? new URL(originalUrl).hostname.toLowerCase().replace(/^www\./, "") : null;
+} catch (e) {
+  originalHost = null;
+}
+
+if (originalHost) {
+  const whitelistLink = document.getElementById("whitelistLink");
+  whitelistLink.hidden = false;
+  whitelistLink.addEventListener("click", async (e) => {
+    e.stopPropagation();
+    await chrome.runtime.sendMessage({ type: "WHITELIST_HOST", host: originalHost });
+    restore();
+  });
+}
+
 // Fetch the cached screenshot for this tab via the background worker.
 chrome.tabs.getCurrent((tab) => {
   if (!tab || tab.id === undefined) return;

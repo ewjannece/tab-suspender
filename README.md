@@ -25,17 +25,24 @@ whitelist, and a snapshot of the page so you remember what was there.
 - Right before a tab loses focus, a compressed screenshot of it is captured
   and cached, so the suspended placeholder shows what the page looked like.
 - Clicking the toolbar icon opens a small popup with the default timeout,
-  the "suspend audio/video tabs" and "suspend pinned tabs" toggles, and a
-  "View suspended tabs" button that opens (or focuses, if already open) the
-  **Suspended Tabs** dashboard as a regular tab — every currently-suspended
-  tab with its screenshot, a restore/close per tab, "Restore all", "Suspend
-  all other tabs", and the global auto-suspend toggle.
+  the "suspend audio/video tabs", "suspend pinned tabs", and "restore
+  suspended tabs when clicked" toggles, an "Add to whitelist" button for the
+  current site, and a "View suspended tabs" button that opens (or focuses,
+  if already open) the **Suspended Tabs** dashboard as a regular tab — every
+  currently-suspended tab with its screenshot, a restore/close per tab,
+  "Restore all", "Suspend all other tabs", and the global auto-suspend toggle.
 - Each domain can have its own timeout (Options → "Per-domain timers", or
   right-click a page → "Never suspend this site"). Domains not explicitly
   configured fall back to the global default timeout.
 - The whitelist (Options page) marks domains that are never auto-suspended —
   useful for things like video calls, docs you're actively editing, etc.
   Setting a domain's timer to "Never" automatically adds it to the whitelist.
+  Two more one-click ways to manage it: the toolbar popup's whitelist toggle
+  (adds/removes an exact entry for the current tab's domain — a toggle
+  that's only "on but locked" if the site is covered by a broader wildcard
+  or path rule instead, since removing those safely needs the Options page)
+  and the "Never suspend this site" link on a suspended tab's placeholder
+  page (whitelists it and restores it).
 - **Session preservation**: when a tab is suspended, its scroll position and
   any in-progress form input (text fields, checkboxes, selects — matched by
   name/id, so this is best-effort on pages that re-render their DOM) are
@@ -56,11 +63,13 @@ whitelist, and a snapshot of the page so you remember what was there.
 - `settings.js` — shared storage helpers (whitelist matching, per-domain
   timeout lookup) used by the background worker, popup, and options page
 - `suspended.html` / `suspended.js` — the placeholder page shown for
-  suspended tabs, including the cached screenshot and restore button
+  suspended tabs: cached screenshot, restore button, and a "Never suspend
+  this site" link
 - `popup.html` / `popup.js` — the toolbar's dropdown popup
   (`action.default_popup` in the manifest): default timeout, "suspend
-  audio/video" and "suspend pinned tabs" toggles, and a button that opens
-  the suspended-tabs dashboard
+  audio/video", "suspend pinned tabs", and "restore on click" toggles, a
+  whitelist toggle for the current site, and a button that opens the
+  suspended-tabs dashboard
 - `manage.html` / `manage.js` — the "Suspended Tabs" dashboard tab, opened
   from the popup's button (or focused if already open) and also linked from
   the Options page. Lists every suspended tab (screenshot, restore/close,

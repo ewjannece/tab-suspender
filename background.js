@@ -622,6 +622,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ ok: true });
         break;
       }
+      case "UNWHITELIST_HOST": {
+        // Only removes an exact-match entry (mirroring how WHITELIST_HOST
+        // only ever adds one) — a wildcard like "*.example.com" or a
+        // path-prefix entry that happens to also cover this host is left
+        // alone, since removing it here could silently un-whitelist other
+        // sites/paths the user added it for. Those still need Options.
+        const settings = await getSettings();
+        if (settings.whitelist.includes(message.host)) {
+          await saveSettings({ whitelist: settings.whitelist.filter((entry) => entry !== message.host) });
+        }
+        sendResponse({ ok: true });
+        break;
+      }
       case "GET_SUSPENDED_COUNT": {
         const tabs = await chrome.tabs.query({});
         const suspendedPrefix = chrome.runtime.getURL("suspended.html");
