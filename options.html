@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Tab Suspender Settings</title>
+<style>
+  :root {
+    --bg: #1f2023;
+    --card: #2a2b2e;
+    --text: #e8eaed;
+    --muted: #9aa0a6;
+    --accent: #4285f4;
+    --border: rgba(255,255,255,0.08);
+    --danger: #e8626b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  }
+  .wrap {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 32px 20px 60px;
+  }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  p.sub { color: var(--muted); margin-top: 0; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-bottom: 20px;
+  }
+  .card h2 { font-size: 15px; margin: 0 0 14px; }
+  .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .row:last-child { margin-bottom: 0; }
+  label.field-label { font-size: 13px; }
+  .muted { color: var(--muted); font-size: 12px; }
+  select, input[type=text], input[type=number], textarea, button {
+    font: inherit;
+    background: #1f2023;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 10px;
+  }
+  button { cursor: pointer; background: var(--card); }
+  button:hover { background: #35363a; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: white; }
+  button.primary:hover { background: #5a95f5; }
+  button.danger { background: transparent; border: none; color: var(--danger); padding: 2px 6px; }
+  .switch {
+    position: relative; width: 36px; height: 20px; flex-shrink: 0;
+  }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute; inset: 0; background: #555; border-radius: 20px; cursor: pointer; transition: 0.15s;
+  }
+  .slider::before {
+    content: ""; position: absolute; height: 16px; width: 16px; left: 2px; top: 2px;
+    background: white; border-radius: 50%; transition: 0.15s;
+  }
+  input:checked + .slider { background: var(--accent); }
+  input:checked + .slider::before { transform: translateX(16px); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; color: var(--muted); font-weight: 500; padding: 6px 4px; border-bottom: 1px solid var(--border); }
+  td { padding: 7px 4px; border-bottom: 1px solid var(--border); }
+  td.actions { text-align: right; }
+  .add-row { display: flex; gap: 8px; margin-top: 12px; }
+  .add-row input { flex: 1; }
+  .add-row select { width: 110px; }
+  .empty { color: var(--muted); font-size: 13px; padding: 10px 0; }
+  #saveToast {
+    position: fixed; bottom: 20px; right: 20px;
+    background: var(--accent); color: white; padding: 8px 16px; border-radius: 6px;
+    font-size: 13px; opacity: 0; transition: opacity 0.2s; pointer-events: none;
+  }
+  #saveToast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Tab Suspender</h1>
+  <p class="sub">Settings, per-domain timers, and whitelist &middot; <a href="manage.html" target="_blank" style="color:var(--accent);">View all suspended tabs →</a></p>
+
+  <div class="card">
+    <h2>General</h2>
+    <div class="row">
+      <label class="field-label" for="autoSuspendEnabled">Enable auto-suspend</label>
+      <label class="switch">
+        <input type="checkbox" id="autoSuspendEnabled" />
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div class="row">
+      <label class="field-label" for="defaultTimeout">Default timeout (minutes)</label>
+      <input type="number" id="defaultTimeout" min="1" max="1440" style="width:80px" />
+    </div>
+    <div class="row">
+      <label class="field-label" for="suspendPinned">Suspend pinned tabs</label>
+      <label class="switch">
+        <input type="checkbox" id="suspendPinned" />
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div class="row">
+      <label class="field-label" for="suspendAudible">Suspend tabs playing audio or video</label>
+      <label class="switch">
+        <input type="checkbox" id="suspendAudible" />
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div class="row">
+      <label class="field-label" for="suspendUnsavedForms">Suspend tabs with unsaved form data</label>
+      <label class="switch">
+        <input type="checkbox" id="suspendUnsavedForms" />
+        <span class="slider"></span>
+      </label>
+    </div>
+    <p class="muted" style="margin:-4px 0 0;">
+      Scroll position and in-progress form fields are captured when a tab is suspended and
+      restored automatically when you bring it back — even so, leaving this off skips
+      auto-suspending tabs with unsaved input as extra insurance.
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>Per-domain timers</h2>
+    <table id="domainTable">
+      <thead><tr><th>Domain</th><th>Timeout</th><th></th></tr></thead>
+      <tbody id="domainTableBody"></tbody>
+    </table>
+    <div class="empty" id="domainEmpty" style="display:none;">No custom domain timers yet.</div>
+    <div class="add-row">
+      <input type="text" id="newDomainInput" placeholder="e.g. youtube.com or *.notion.so" />
+      <select id="newDomainTimeout">
+        <option value="0">Never</option>
+        <option value="5">5 min</option>
+        <option value="15">15 min</option>
+        <option value="30" selected>30 min</option>
+        <option value="60">1 hour</option>
+        <option value="180">3 hours</option>
+      </select>
+      <button class="primary" id="addDomainBtn">Add</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Whitelist (never suspend)</h2>
+    <p class="muted" style="margin-top:-8px;">Supports exact domains, <code>*.example.com</code> wildcards, and optional path prefixes like <code>example.com/inbox</code>.</p>
+    <table id="whitelistTable">
+      <thead><tr><th>Entry</th><th></th></tr></thead>
+      <tbody id="whitelistTableBody"></tbody>
+    </table>
+    <div class="empty" id="whitelistEmpty" style="display:none;">Whitelist is empty.</div>
+    <div class="add-row">
+      <input type="text" id="newWhitelistInput" placeholder="e.g. docs.google.com or *.slack.com" />
+      <button class="primary" id="addWhitelistBtn">Add</button>
+    </div>
+    <div class="add-row" style="margin-top:6px;">
+      <textarea id="bulkWhitelistInput" placeholder="Paste multiple domains, one per line, then click Import" rows="3" style="flex:1;"></textarea>
+    </div>
+    <div class="add-row">
+      <button id="importBulkBtn">Import list above</button>
+    </div>
+  </div>
+</div>
+
+<div id="saveToast">Saved</div>
+
+<script src="options.js"></script>
+</body>
+</html>

@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Suspended Tabs</title>
+<link rel="icon" href="icons/icon32.png" />
+<style>
+  :root {
+    --bg: #1f2023;
+    --card: #2a2b2e;
+    --text: #e8eaed;
+    --muted: #9aa0a6;
+    --accent: #4285f4;
+    --border: rgba(255,255,255,0.08);
+    --danger: #e8626b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  }
+  .wrap {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 32px 24px 60px;
+  }
+  .top-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .top-row h1 { font-size: 22px; margin: 0 0 4px; }
+  .top-row p { margin: 0; color: var(--muted); font-size: 13px; }
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .switch { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute; inset: 0;
+    background: #555; border-radius: 20px; cursor: pointer; transition: 0.15s;
+  }
+  .slider::before {
+    content: ""; position: absolute; height: 16px; width: 16px; left: 2px; top: 2px;
+    background: white; border-radius: 50%; transition: 0.15s;
+  }
+  input:checked + .slider { background: var(--accent); }
+  input:checked + .slider::before { transform: translateX(16px); }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-bottom: 20px;
+  }
+
+  button {
+    font: inherit;
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+  }
+  button { cursor: pointer; }
+  button:hover { background: #35363a; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: white; }
+  button.primary:hover { background: #5a95f5; }
+  button.danger { background: transparent; border: none; color: var(--danger); padding: 4px 8px; }
+  button:disabled { opacity: 0.5; cursor: default; }
+
+  .actions-row { display: flex; gap: 10px; margin-bottom: 20px; }
+
+  .empty {
+    color: var(--muted);
+    text-align: center;
+    padding: 80px 20px;
+    font-size: 14px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px;
+  }
+  .card.tab-card {
+    padding: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 0;
+  }
+  .thumb {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #1a1b1e;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-size: 12px;
+    cursor: pointer;
+    overflow: hidden;
+  }
+  .thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top;
+    filter: saturate(0.55) brightness(0.55);
+    display: block;
+  }
+  .card-body {
+    padding: 10px 12px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+  }
+  .card-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-title-row img {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    border-radius: 3px;
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .card-meta {
+    font-size: 11px;
+    color: var(--muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .card-actions {
+    margin-top: auto;
+    display: flex;
+    gap: 6px;
+    padding-top: 6px;
+  }
+  .card-actions button { flex: 1; padding: 6px 8px; font-size: 12px; }
+
+  .footer-link {
+    text-align: center;
+    padding: 20px 0 0;
+    font-size: 13px;
+    color: var(--muted);
+    cursor: pointer;
+  }
+  .footer-link:hover { color: var(--text); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top-row">
+    <div>
+      <h1>Suspended Tabs</h1>
+      <p id="subtitle">Loading…</p>
+    </div>
+    <div class="toggle-row">
+      <span>Auto-suspend</span>
+      <label class="switch">
+        <input type="checkbox" id="autoSuspendToggle" />
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <div class="actions-row">
+    <button id="suspendAllBtn">Suspend all other tabs</button>
+    <button class="primary" id="restoreAllBtn">Restore all</button>
+  </div>
+
+  <div class="empty" id="emptyState" hidden>No tabs are suspended right now.</div>
+  <div class="grid" id="grid"></div>
+
+  <div class="footer-link" id="openOptions">More settings & whitelist →</div>
+</div>
+
+<script src="manage.js"></script>
+</body>
+</html>

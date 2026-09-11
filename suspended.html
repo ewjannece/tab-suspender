@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Tab Suspended</title>
+<link rel="icon" id="favicon" href="icons/icon32.png" />
+<style>
+  :root {
+    --bg: #202124;
+    --card: #2a2b2e;
+    --text: #e8eaed;
+    --muted: #9aa0a6;
+    --accent: #4285f4;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    color: var(--text);
+  }
+  .wrap {
+    width: min(720px, 92vw);
+    text-align: center;
+  }
+  .shot-frame {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--card);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    cursor: pointer;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .shot-frame img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top;
+    filter: saturate(0.55) brightness(0.55);
+    display: block;
+  }
+  .shot-frame .placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.15), rgba(0,0,0,0.55));
+  }
+  .overlay img.favicon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    background: white;
+    padding: 6px;
+  }
+  .restore-btn {
+    padding: 10px 22px;
+    border-radius: 24px;
+    border: none;
+    background: var(--accent);
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .restore-btn:hover { background: #5a95f5; }
+  h1 {
+    margin: 20px 0 4px;
+    font-size: 18px;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .meta {
+    color: var(--muted);
+    font-size: 13px;
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="shot-frame" id="shotFrame">
+      <div class="placeholder" id="placeholder">No preview available</div>
+      <div class="overlay">
+        <img class="favicon" id="favicon-img" alt="" />
+        <button class="restore-btn" id="restoreBtn">Click to reload tab</button>
+      </div>
+    </div>
+    <h1 id="pageTitle"></h1>
+    <div class="meta" id="meta">Suspended to save memory</div>
+  </div>
+  <script src="suspended.js"></script>
+</body>
+</html>
