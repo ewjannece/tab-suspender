@@ -12,6 +12,7 @@ const emptyState = document.getElementById("emptyState");
 const subtitle = document.getElementById("subtitle");
 const restoreAllBtn = document.getElementById("restoreAllBtn");
 const suspendAllBtn = document.getElementById("suspendAllBtn");
+const dedupeBtn = document.getElementById("dedupeBtn");
 const autoSuspendToggle = document.getElementById("autoSuspendToggle");
 
 let refreshQueued = false;
@@ -137,6 +138,20 @@ suspendAllBtn.addEventListener("click", async () => {
   await chrome.runtime.sendMessage({ type: "SUSPEND_ALL_OTHER" });
   suspendAllBtn.disabled = false;
   suspendAllBtn.textContent = "Suspend other tabs";
+  scheduleRefresh();
+});
+
+dedupeBtn.addEventListener("click", async () => {
+  dedupeBtn.disabled = true;
+  dedupeBtn.textContent = "Checking…";
+  const resp = await chrome.runtime.sendMessage({ type: "DEDUPE_SUSPENDED_TABS" });
+  dedupeBtn.disabled = false;
+  dedupeBtn.textContent = "Remove duplicates";
+  if (resp?.removed) {
+    alert(`Closed ${resp.removed} duplicate suspended tab${resp.removed === 1 ? "" : "s"}.`);
+  } else {
+    alert("No duplicates found.");
+  }
   scheduleRefresh();
 });
 

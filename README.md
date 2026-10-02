@@ -26,11 +26,20 @@ whitelist, and a snapshot of the page so you remember what was there.
   and cached, so the suspended placeholder shows what the page looked like.
 - Clicking the toolbar icon opens a small popup with the default timeout,
   the "suspend audio/video tabs", "suspend pinned tabs", and "restore
-  suspended tabs when clicked" toggles, an "Add to whitelist" button for the
-  current site, and a "View suspended tabs" button that opens (or focuses,
-  if already open) the **Suspended Tabs** dashboard as a regular tab — every
+  suspended tabs when clicked" toggles, a whitelist toggle for the current
+  site, and a "View suspended tabs" button that opens (or focuses, if
+  already open) the **Suspended Tabs** dashboard as a regular tab — every
   currently-suspended tab with its screenshot, a restore/close per tab,
   "Restore all", "Suspend all other tabs", and the global auto-suspend toggle.
+- If a browser restart (crash or ordinary) brings back suspended tabs, the
+  dashboard opens (or focuses) automatically so restoring them in bulk is
+  right there. This covers both ways Chrome brings tabs back: immediately
+  via "continue where you left off", or whenever you click the "Restore
+  pages?" bubble (which can be seconds or minutes later, since that's a
+  manual click, not something on a timer) — there's no API for an extension
+  to tell a crash-recovered startup apart from a normal one, so this
+  triggers on either, whenever suspended placeholders actually show up,
+  for up to 5 minutes after startup.
 - Each domain can have its own timeout (Options → "Per-domain timers", or
   right-click a page → "Never suspend this site"). Domains not explicitly
   configured fall back to the global default timeout.

@@ -37,12 +37,98 @@ chrome.runtime.onInstalled.addListener(async () => {
 });
 
 chrome.runtime.onStartup.addListener(async () => {
+  console.log("[TabSuspender] onStartup fired");
   chrome.alarms.create(ALARM_NAME, { periodInMinutes: ALARM_PERIOD_MINUTES });
   // Note: no reviveOrphanedSuspendedTabs() here — on a real browser restart,
   // Chrome's own session restore already reopens each suspended.html tab at
   // its saved URL. Running our reconciliation here too could race against
   // that (tabs not yet restored when we check) and create duplicates.
   await primeActiveTimestamps();
+  await checkForRestoredSuspendedTabs();
+});
+
+// There's no extension API to tell a crash-recovered startup apart from an
+// ordinary one (exit_type is internal Chrome profile state, not exposed to
+// extensions) — so instead of detecting "did we crash", this detects the
+// symptom either way produces: suspended.html placeholders coming back.
+// That doesn't necessarily happen the instant onStartup fires, though: if
+// the "on startup" setting isn't "Continue where you left off", Chrome
+// instead shows the "Restore pages?" bubble and waits for a manual click.
+// And even after that click, with a large number of tabs (100+), Chrome
+// deliberately staggers/throttles restoring them rather than loading them
+// all at once — so a given tab's content, and the onUpdated event carrying
+// its real URL, can show up many minutes after the click, not right after
+// it. So this checks immediately for tabs that already came back, and
+// otherwise leaves a generous watch window (backed by chrome.storage.session
+// so it survives this worker being killed and restarted while it waits)
+// that the onCreated/onUpdated listeners below consult whenever a suspended
+// tab actually shows up, however long that takes.
+const RESTORE_WATCH_MS = 30 * 60 * 1000; // generous enough to cover a large (100+ tab) staggered restore
+
+async function checkForRestoredSuspendedTabs() {
+  const tabs = await chrome.tabs.query({});
+  const found = tabs.filter((t) => parseSuspendedTab(t) !== null);
+  console.log(`[TabSuspender] immediate check: ${tabs.length} tabs open, ${found.length} already suspended`);
+  if (found.length > 0) {
+    console.log("[TabSuspender] suspended tabs already present at startup -> opening dashboard now");
+    await openOrFocusDashboard();
+    return;
+  }
+  await chrome.storage.session
+    .set({ watchForRestoredTabsUntil: Date.now() + RESTORE_WATCH_MS })
+    .catch((e) => console.log("[TabSuspender] failed to set watch flag", e));
+  console.log(`[TabSuspender] none yet — watching until ${new Date(Date.now() + RESTORE_WATCH_MS).toLocaleTimeString()}`);
+}
+
+async function isWatchingForRestoredTabs() {
+  const { watchForRestoredTabsUntil } = await chrome.storage.session
+    .get("watchForRestoredTabsUntil")
+    .catch(() => ({}));
+  return typeof watchForRestoredTabsUntil === "number" && Date.now() < watchForRestoredTabsUntil;
+}
+
+// A mass-restore after a crash fires onCreated/onUpdated for many suspended
+// tabs at once, all calling this concurrently. Claiming this flag happens
+// synchronously (no await before it), so only the first call in a burst
+// passes — otherwise several of them could all see "still watching" before
+// any had finished clearing it, and each would try to open the dashboard,
+// creating duplicate tabs.
+let dashboardTriggerClaimed = false;
+
+// Called from the onCreated/onUpdated listeners for every tab created or
+// navigated — cheap early exit via parseSuspendedTab() before touching
+// storage for the (much rarer) suspended-tab case.
+async function maybeHandleRestoredTab(tab) {
+  if (!tab || parseSuspendedTab(tab) === null) return;
+  if (dashboardTriggerClaimed) return;
+  dashboardTriggerClaimed = true;
+
+  console.log(`[TabSuspender] saw a suspended tab appear: tabId=${tab.id} url=${tab.url}`);
+  const watching = await isWatchingForRestoredTabs();
+  console.log(`[TabSuspender] currently watching for restored tabs: ${watching}`);
+  if (!watching) {
+    dashboardTriggerClaimed = false; // not a real trigger after all — release the claim
+    return;
+  }
+  await chrome.storage.session.remove("watchForRestoredTabsUntil").catch(() => {});
+  console.log("[TabSuspender] opening dashboard in response to restored tab");
+  await openOrFocusDashboard();
+}
+
+async function openOrFocusDashboard() {
+  const manageUrl = chrome.runtime.getURL("manage.html");
+  const existing = await chrome.tabs.query({ url: manageUrl });
+  if (existing.length > 0 && existing[0].id !== undefined) {
+    await chrome.tabs.update(existing[0].id, { active: true }).catch(() => {});
+    await chrome.windows.update(existing[0].windowId, { focused: true }).catch(() => {});
+  } else {
+    await chrome.tabs.create({ url: manageUrl }).catch((e) => console.log("[TabSuspender] failed to create dashboard tab", e));
+  }
+}
+
+chrome.tabs.onCreated.addListener((tab) => {
+  console.log(`[TabSuspender] onCreated: tabId=${tab.id} url=${tab.url}`);
+  maybeHandleRestoredTab(tab).catch(() => {});
 });
 
 async function primeActiveTimestamps() {
@@ -140,6 +226,39 @@ async function reviveOrphanedSuspendedTabs() {
   }
 }
 
+// Groups suspended tabs by their original page URL (not by sid — two
+// different suspend events for the same page, e.g. suspended once, restored,
+// then suspended again later, get different sids but the same URL, and are
+// still considered duplicates here). For each URL with more than one
+// suspended tab, keeps only the most recently suspended one and closes the
+// rest.
+async function dedupeSuspendedTabs() {
+  const tabs = await chrome.tabs.query({});
+  const candidates = [];
+  for (const t of tabs) {
+    if (t.id === undefined) continue;
+    const info = parseSuspendedTab(t);
+    if (!info || !info.url) continue;
+    candidates.push({ tabId: t.id, url: info.url, suspendedAt: info.suspendedAt || 0 });
+  }
+
+  const bestByUrl = new Map(); // url -> the candidate to keep (latest suspendedAt)
+  for (const c of candidates) {
+    const existing = bestByUrl.get(c.url);
+    if (!existing || c.suspendedAt > existing.suspendedAt) {
+      bestByUrl.set(c.url, c);
+    }
+  }
+
+  const keepTabIds = new Set(Array.from(bestByUrl.values(), (c) => c.tabId));
+  const toClose = candidates.filter((c) => !keepTabIds.has(c.tabId)).map((c) => c.tabId);
+
+  if (toClose.length > 0) {
+    await chrome.tabs.remove(toClose).catch(() => {});
+  }
+  return { removed: toClose.length, kept: keepTabIds.size };
+}
+
 async function recreateSuspendedTab(sid, record) {
   const params = new URLSearchParams({
     url: record.url,
@@ -224,6 +343,11 @@ chrome.windows.onFocusChanged.addListener(async (windowId) => {
 });
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  // Covers tabs that already existed (e.g. a blank New Tab Page) getting
+  // navigated to a restored suspended.html URL, rather than a new tab being
+  // created for it — the onCreated listener alone would miss this case.
+  maybeHandleRestoredTab(tab).catch(() => {});
+
   // A tracked suspended tab whose URL is no longer suspended.html was
   // genuinely restored (clicked "restore", address bar edit, etc.) rather
   // than force-closed by a reload. Mark it pending: once the new page
@@ -644,20 +768,29 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
       case "GET_SUSPENDED_TABS": {
         const tabs = await chrome.tabs.query({});
-        const results = [];
-        for (const t of tabs) {
-          if (t.id === undefined) continue;
-          const info = parseSuspendedTab(t);
-          if (!info) continue;
-          results.push({
+        const candidates = tabs
+          .map((t) => ({ t, info: t.id === undefined ? null : parseSuspendedTab(t) }))
+          .filter(({ info }) => info !== null);
+        // Screenshot lookups are independent storage reads — run them
+        // concurrently rather than one at a time in series. With a couple
+        // dozen suspended tabs the difference is invisible; with hundreds+
+        // (as a long-idle setup can accumulate), sequential awaits here
+        // meant waiting out hundreds of round-trips back to back.
+        const results = await Promise.all(
+          candidates.map(async ({ t, info }) => ({
             tabId: t.id,
             windowId: t.windowId,
             index: t.index,
             ...info,
             thumb: await getScreenshotDataUrl(t.id)
-          });
-        }
+          }))
+        );
         sendResponse({ tabs: results });
+        break;
+      }
+      case "DEDUPE_SUSPENDED_TABS": {
+        const result = await dedupeSuspendedTabs();
+        sendResponse({ ok: true, ...result });
         break;
       }
       case "RESTORE_SUSPENDED_TAB": {
