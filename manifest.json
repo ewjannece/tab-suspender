@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Tab Suspender",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "Automatically suspends idle tabs to save memory, with per-domain timers, a whitelist, and a snapshot of the page so you remember what was there.",
   "permissions": ["tabs", "storage", "alarms", "contextMenus", "scripting"],
   "host_permissions": ["<all_urls>"],
